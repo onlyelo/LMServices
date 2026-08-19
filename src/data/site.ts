@@ -205,12 +205,6 @@ export const travelFee = {
   fee: 15,
 } as const
 
-export const pricingNotes = [
-  'Le montant final dépend du nombre et du type d’ouvrants, ainsi que de leur accessibilité.',
-  'Tarifs TTC — TVA non applicable, art. 293 B du CGI.',
-  'Devis gratuit et sans engagement, établi après visite ou sur photos.',
-  'Vitrages très encrassés et chantiers après travaux : sur devis.',
-]
 
 /* ------------------------------------------------------------------ */
 /* Conditions d'annulation                                             */
@@ -234,6 +228,48 @@ export const cancellationPolicy = [
     detail:
       'Sauf cas de force majeure — urgence médicale justifiable, hospitalisation, décès d’un proche — sur présentation d’un justificatif.',
     free: false,
+  },
+]
+
+/* ------------------------------------------------------------------ */
+/* Questions fréquentes                                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Regroupe en bas de page ce qui traînait auparavant en petites mentions au
+ * milieu du parcours. Les réponses sont volontairement écrites en clair : une
+ * FAQ qui esquive est pire que pas de FAQ.
+ */
+export const faq = [
+  {
+    id: 'deplacement',
+    question: 'Les frais de déplacement sont-ils inclus ?',
+    answer:
+      'Le déplacement est offert dans un rayon de 25 km autour de Barr, ce qui couvre notamment Obernai, Sélestat, Molsheim, Benfeld et Andlau. Entre 25 et 50 km — Strasbourg, Colmar, Saverne — un forfait unique de 15 € s’ajoute au devis, quelle que soit la durée de l’intervention. Au-delà de 50 km, l’intervention reste possible et le déplacement est convenu au cas par cas. Le code postal saisi dans le formulaire affiche votre zone immédiatement.',
+  },
+  {
+    id: 'stationnement',
+    question: 'Des frais de stationnement peuvent-ils s’appliquer ?',
+    answer:
+      'Des frais de stationnement peuvent être ajoutés au devis selon les conditions d’accès au chantier. Ces frais, à la charge du client, sont toujours communiqués et acceptés explicitement avant toute intervention.',
+  },
+  {
+    id: 'tva',
+    question: 'Pourquoi n’y a-t-il pas de TVA sur le devis ?',
+    answer:
+      'LMS relève du régime de la franchise en base de TVA, prévu par l’article 293 B du Code général des impôts. Aucune TVA n’est facturée et aucune n’est récupérable : le prix annoncé est le prix payé. Pour un particulier, cela revient à un tarif net d’environ 20 % inférieur à celui d’une entreprise assujettie, à prestation égale.',
+  },
+  {
+    id: 'annulation',
+    question: 'Quelle est votre politique d’annulation ?',
+    answer:
+      'Plus de 24 h avant l’intervention : annulation ou report sans frais, sans justification à fournir. Moins de 24 h, ou rendez-vous non honoré : 30 % du montant du devis, sauf cas de force majeure justifié — urgence médicale, hospitalisation, décès d’un proche. En cas d’intempéries, nous reportons nous-mêmes sans aucun frais.',
+  },
+  {
+    id: 'devis',
+    question: 'Le devis est-il vraiment gratuit ?',
+    answer:
+      'Oui, il est absolument gratuit. Il est établi après échange de photos ou visite sur place, et vous recevez une réponse sous 24 h. L’estimation affichée dans le formulaire est indicative : le devis définitif peut être ajusté pour des vitrages très encrassés, des chantiers après travaux, des hauteurs inhabituelles ou des vitrages à petits carreaux. La signature du devis vous engage vis-à-vis de la prestation, en accord avec la politique d’annulation.',
   },
 ]
 
@@ -312,6 +348,6 @@ export const navLinks = [
   { href: '#forfaits', label: 'Forfaits' },
   { href: '#zone', label: 'Zone' },
   { href: '#avis', label: 'Avis' },
-  { href: '#conditions', label: 'Conditions' },
+  { href: '#faq', label: 'FAQ' },
   { href: '#reservation', label: 'Réservation' },
 ]

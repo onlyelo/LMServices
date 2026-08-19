@@ -1,15 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { company, housingTypes, packs, serviceBase, showerOption } from '@/data/site'
+import {
+  company,
+  housingTypes,
+  packs,
+  showerOption,
+  showerPricing,
+  travelFee,
+} from '@/data/site'
 import { cn, scrollToId } from '@/lib/utils'
 import { emptyCounts, totalOpenings, type BookingPayload } from '@/lib/booking'
 import { submitBooking } from '@/lib/submitBooking'
 import { RateLimitError } from '@/lib/telegram'
 import { FRENCH_PHONE, normalizePhone } from '@/lib/phone'
 import { useTravelZone } from '@/lib/useTravelZone'
-import Section from './Section'
 import Reveal from './Reveal'
 import OpeningCounter from './OpeningCounter'
 import EstimatePreview from './EstimatePreview'
@@ -47,15 +54,28 @@ const schema = z
     city: z.string().trim().min(2, 'Indiquez la ville.'),
     housing: z.string().min(1, 'Choisissez un type de logement.'),
     counts: countsSchema,
-    pack: z.string().min(1, 'Choisissez un forfait.'),
+    // Aucun des deux forfaits n’est requis d’emblée : les règles ci-dessous
+    // ne l’exigent que pour la partie effectivement demandée.
+    pack: z.string(),
     shower: z.boolean(),
+    showerPack: z.string(),
     date: z.string().min(1, 'Choisissez une date souhaitée.'),
     message: z.string().trim().max(1200, '1200 caractères maximum.').optional(),
     acceptTerms: z.boolean(),
   })
-  .refine((v) => totalOpenings(v.counts) > 0, {
-    message: 'Indiquez au moins un ouvrant à traiter.',
+  // Une demande peut ne porter que sur la douche : c’est le total ouvrants
+  // OU l’option douche qui doit être renseigné, pas les deux.
+  .refine((v) => totalOpenings(v.counts) > 0 || v.shower, {
+    message: 'Indiquez au moins un ouvrant, ou cochez l’option vitres de douche.',
     path: ['counts'],
+  })
+  .refine((v) => totalOpenings(v.counts) === 0 || v.pack.length > 0, {
+    message: 'Choisissez un forfait pour vos vitres.',
+    path: ['pack'],
+  })
+  .refine((v) => !v.shower || v.showerPack.length > 0, {
+    message: 'Choisissez un forfait pour les vitres de douche.',
+    path: ['showerPack'],
   })
   .refine((v) => v.acceptTerms, {
     message: 'Vous devez accepter les conditions d’annulation.',
@@ -107,6 +127,7 @@ export default function Booking() {
       counts: emptyCounts,
       pack: '',
       shower: false,
+      showerPack: '',
       date: '',
       message: '',
       acceptTerms: false,
@@ -116,6 +137,7 @@ export default function Booking() {
   const counts = watch('counts')
   const shower = watch('shower')
   const pack = watch('pack')
+  const showerPack = watch('showerPack')
   const postalCode = watch('postalCode')
   const city = watch('city')
   const total = totalOpenings(counts)
@@ -180,10 +202,58 @@ export default function Booking() {
   const today = new Date().toISOString().slice(0, 10)
 
   return (
-    <Section id="reservation" eyebrow="Réservation" title="Demander un devis">
-      <div className="grid gap-8 lg:grid-cols-5 lg:gap-12">
-        <Reveal className="lg:col-span-3">
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="card-lux p-6 sm:p-8">
+    <section id="reservation" className="scroll-mt-20 py-20 sm:py-28">
+      <div className="container-lux">
+        {/* 2/5 - 3/5 : le discours à gauche, le formulaire à droite. Une colonne
+            unique laissait le formulaire s’étirer sur toute la largeur en
+            desktop, avec des champs de 900 px pour saisir un code postal. */}
+        <div className="grid gap-10 lg:grid-cols-5 lg:gap-14">
+          <Reveal className="lg:col-span-2">
+            {/* Reste visible pendant que le visiteur descend le formulaire. */}
+            <div className="lg:sticky lg:top-28">
+              <p className="eyebrow">Réservation</p>
+              <h2 className="mt-3 h-section text-cream">Demander un devis</h2>
+              <div className="mt-5 h-px w-16 bg-gold-line" />
+
+              <p className="mt-6 text-sm leading-relaxed text-cream-dim">
+                Quelques informations suffisent : vous recevez une estimation immédiate à l’écran,
+                puis un devis ferme sous 24 h.
+              </p>
+
+              <dl className="mt-8 grid grid-cols-2 gap-5 border-y border-ink-line py-6 lg:grid-cols-1 lg:gap-6">
+                {[
+                  { k: 'Réponse', v: 'Sous 24 h' },
+                  { k: 'Devis', v: 'Gratuit, sans engagement' },
+                  { k: 'Déplacement', v: `Offert jusqu’à ${travelFee.freeRadiusKm} km` },
+                  { k: 'Disponibilité', v: 'Lundi – samedi, 8 h – 19 h' },
+                ].map((item) => (
+                  <div key={item.k}>
+                    <dt className="text-[10px] uppercase tracking-widest2 text-cream-dim">
+                      {item.k}
+                    </dt>
+                    <dd className="mt-1 text-sm text-cream">{item.v}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <p className="mt-6 text-sm leading-relaxed text-cream-dim">
+                Un doute sur le forfait, une contrainte d’accès, une urgence ? Un appel règle la
+                question en deux minutes.
+              </p>
+
+              <div className="mt-5 space-y-3">
+                <a href={company.phoneHref} className="btn-gold w-full">
+                  {company.phone}
+                </a>
+                <a href={`mailto:${company.email}`} className="btn-ghost w-full">
+                  {company.email}
+                </a>
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.05} className="lg:col-span-3">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="card-lux relative p-6 sm:p-8">
             {/* Piège à robots. Sorti du flux plutôt que masqué par display:none :
                 de nombreux robots ignorent délibérément les champs invisibles au
                 sens CSS, mais remplissent ceux qui restent dans le DOM. Invisible
@@ -201,8 +271,10 @@ export default function Booking() {
               />
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="min-w-0">
+            {/* Grille sur 6 colonnes : autorise moitiés (3), tiers (2) et
+                pleine largeur (6) sans multiplier les conteneurs. */}
+            <div className="grid gap-5 sm:grid-cols-6">
+              <div className="min-w-0 sm:col-span-3">
                 <label className="label" htmlFor="name">
                   Nom et prénom
                 </label>
@@ -210,13 +282,12 @@ export default function Booking() {
                   id="name"
                   autoComplete="name"
                   className="field"
-                  placeholder="Votre nom et prénom"
                   {...register('name')}
                 />
                 <FieldError msg={errors.name?.message} />
               </div>
 
-              <div className="min-w-0">
+              <div className="min-w-0 sm:col-span-3">
                 <label className="label" htmlFor="phone">
                   Téléphone
                 </label>
@@ -226,10 +297,23 @@ export default function Booking() {
                   inputMode="tel"
                   autoComplete="tel"
                   className="field"
-                  placeholder="Votre numéro de téléphone"
+                  placeholder="0X XX XX XX XX"
                   {...register('phone')}
                 />
                 <FieldError msg={errors.phone?.message} />
+              </div>
+
+              <div className="min-w-0 sm:col-span-6">
+                <label className="label" htmlFor="address">
+                  Adresse de l’intervention
+                </label>
+                <input
+                  id="address"
+                  autoComplete="street-address"
+                  className="field"
+                  {...register('address')}
+                />
+                <FieldError msg={errors.address?.message} />
               </div>
 
               <div className="min-w-0 sm:col-span-2">
@@ -242,27 +326,13 @@ export default function Booking() {
                   inputMode="email"
                   autoComplete="email"
                   className="field"
-                  placeholder="votre@email.com"
+                  placeholder="nom@domaine.fr"
                   {...register('email')}
                 />
                 <FieldError msg={errors.email?.message} />
               </div>
 
               <div className="min-w-0 sm:col-span-2">
-                <label className="label" htmlFor="address">
-                  Adresse de l’intervention
-                </label>
-                <input
-                  id="address"
-                  autoComplete="street-address"
-                  className="field"
-                  placeholder="Votre adresse"
-                  {...register('address')}
-                />
-                <FieldError msg={errors.address?.message} />
-              </div>
-
-              <div className="min-w-0">
                 <label className="label" htmlFor="postalCode">
                   Code postal
                 </label>
@@ -272,14 +342,14 @@ export default function Booking() {
                   autoComplete="postal-code"
                   maxLength={5}
                   className="field"
-                  placeholder="Votre code postal"
+                  placeholder="5 chiffres"
                   {...register('postalCode')}
                 />
                 <FieldError msg={errors.postalCode?.message} />
                 <TravelBadge state={travel} />
               </div>
 
-              <div className="min-w-0">
+              <div className="min-w-0 sm:col-span-2">
                 <label className="label" htmlFor="city">
                   Ville
                 </label>
@@ -287,13 +357,12 @@ export default function Booking() {
                   id="city"
                   autoComplete="address-level2"
                   className="field"
-                  placeholder="Votre ville"
                   {...register('city')}
                 />
                 <FieldError msg={errors.city?.message} />
               </div>
 
-              <div className="min-w-0 sm:col-span-2">
+              <div className="min-w-0 sm:col-span-6">
                 <label className="label" htmlFor="housing">
                   Type de logement
                 </label>
@@ -308,7 +377,7 @@ export default function Booking() {
                 <FieldError msg={errors.housing?.message} />
               </div>
 
-              <div className="min-w-0 sm:col-span-2">
+              <div className="min-w-0 sm:col-span-6">
                 <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
                   <span className="label !mb-0">Ouvrants à traiter</span>
                   <span className="text-xs text-cream-dim">
@@ -327,7 +396,7 @@ export default function Booking() {
                 />
                 <FieldError msg={errors.counts?.message} />
                 <p className="mt-2 text-xs text-cream-dim">
-                  Un ordre de grandeur suffit — le devis est confirmé après photos ou visite.
+                  Un ordre de grandeur suffit.
                 </p>
 
                 <div className="mt-5">
@@ -335,43 +404,53 @@ export default function Booking() {
                     counts={counts}
                     shower={shower}
                     pack={pack}
+                    showerPack={showerPack}
                     travel={travel}
                   />
                 </div>
               </div>
 
-              <div className="min-w-0 sm:col-span-2">
-                <span className="label">Forfait souhaité</span>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {packs.map((p) => (
-                    <label
-                      key={p.id}
-                      className={cn(
-                        'flex cursor-pointer items-start gap-3 rounded-xl border border-ink-line bg-ink-soft p-4 transition',
-                        'hover:border-gold/50 has-[:checked]:border-gold has-[:checked]:bg-gold/[0.06]',
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        value={p.id}
-                        className="mt-1 h-4 w-4 accent-[#C9A24A]"
-                        {...register('pack')}
-                      />
-                      <span>
-                        <span className="block text-sm font-medium text-cream">{p.name}</span>
-                        <span className="mt-0.5 block text-xs text-cream-dim">
-                          {p.perWindow} € par fenêtre standard
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                <FieldError msg={errors.pack?.message} />
+              <div className="min-w-0 sm:col-span-6">
+                {/* Le forfait des vitres ne se pose que s’il y a des vitres :
+                    une demande portant uniquement sur la douche n’a pas à
+                    trancher entre Premium et Excellence pour des ouvrants
+                    qu’elle ne comporte pas. */}
+                {total > 0 && (
+                  <>
+                    <span className="label">Forfait pour vos vitres</span>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {packs.map((p) => (
+                        <label
+                          key={p.id}
+                          className={cn(
+                            'flex cursor-pointer items-start gap-3 rounded-xl border border-ink-line bg-ink-soft p-4 transition',
+                            'hover:border-gold/50 has-[:checked]:border-gold has-[:checked]:bg-gold/[0.06]',
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            value={p.id}
+                            className="mt-1 h-4 w-4 accent-[#C9A24A]"
+                            {...register('pack')}
+                          />
+                          <span>
+                            <span className="block text-sm font-medium text-cream">{p.name}</span>
+                            <span className="mt-0.5 block text-xs text-cream-dim">
+                              {p.perWindow} € par fenêtre standard
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <FieldError msg={errors.pack?.message} />
+                  </>
+                )}
 
                 <label
                   className={cn(
-                    'mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-ink-line bg-ink-soft p-4 transition',
+                    'flex cursor-pointer items-start gap-3 rounded-xl border border-ink-line bg-ink-soft p-4 transition',
                     'hover:border-gold/50 has-[:checked]:border-gold has-[:checked]:bg-gold/[0.06]',
+                    total > 0 && 'mt-3',
                   )}
                 >
                   <input
@@ -384,14 +463,65 @@ export default function Booking() {
                       Ajouter l’option {showerOption.name}
                     </span>
                     <span className="mt-0.5 block text-xs text-cream-dim">
-                      {showerOption.premium} € en Premium — {showerOption.excellence} € en Excellence
-                      avec traitement nano hydrophobe, pour la douche complète
+                      Nettoyage complet de la douche, avec ou sans traitement nano hydrophobe
                     </span>
                   </span>
                 </label>
+
+                {/* Forfait propre à la douche : indépendant de celui des vitres,
+                    on peut vouloir le traitement nano sans passer les fenêtres
+                    en Excellence. */}
+                <AnimatePresence initial={false}>
+                  {shower && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 rounded-xl border border-gold/25 bg-gold/[0.04] p-4">
+                        <span className="label">Forfait pour la douche</span>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {packs.map((p) => (
+                            <label
+                              key={p.id}
+                              className={cn(
+                                'flex cursor-pointer items-start gap-3 rounded-xl border border-ink-line bg-ink-soft p-4 transition',
+                                'hover:border-gold/50 has-[:checked]:border-gold has-[:checked]:bg-gold/[0.06]',
+                              )}
+                            >
+                              <input
+                                type="radio"
+                                value={p.id}
+                                className="mt-1 h-4 w-4 accent-[#C9A24A]"
+                                {...register('showerPack')}
+                              />
+                              <span>
+                                <span className="block text-sm font-medium text-cream">
+                                  {p.name}
+                                </span>
+                                <span className="mt-0.5 block text-xs text-cream-dim">
+                                  {showerPricing[p.id]} €{' '}
+                                  {p.id === 'excellence'
+                                    ? '— traitement nano hydrophobe compris'
+                                    : '— nettoyage complet'}
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                        <FieldError msg={errors.showerPack?.message} />
+                        <p className="mt-3 text-xs leading-relaxed text-cream-dim">
+                          Ce choix est indépendant du forfait retenu pour vos vitres.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <div className="min-w-0 sm:col-span-2">
+              <div className="min-w-0 sm:col-span-6">
                 <label className="label" htmlFor="date">
                   Date souhaitée
                 </label>
@@ -406,14 +536,14 @@ export default function Booking() {
                 <FieldError msg={errors.date?.message} />
               </div>
 
-              <div className="min-w-0 sm:col-span-2">
+              <div className="min-w-0 sm:col-span-6">
                 <label className="label" htmlFor="photos">
                   Photos <span className="normal-case tracking-normal">(facultatif)</span>
                 </label>
                 <PhotoUpload files={photos} onChange={setPhotos} />
               </div>
 
-              <div className="min-w-0 sm:col-span-2">
+              <div className="min-w-0 sm:col-span-6">
                 <label className="label" htmlFor="message">
                   Message <span className="normal-case tracking-normal">(facultatif)</span>
                 </label>
@@ -422,7 +552,7 @@ export default function Booking() {
                   autoComplete="off"
                   rows={4}
                   className="field resize-y"
-                  placeholder="Contraintes d’accès, étage, particularités du chantier…"
+                  placeholder="J’aimerais une intervention l’après-midi. Accès par le jardin, deux fenêtres à l’étage…"
                   {...register('message')}
                 />
                 <FieldError msg={errors.message?.message} />
@@ -443,11 +573,11 @@ export default function Booking() {
               <span className="text-sm text-cream">
                 J’ai lu et j’accepte les{' '}
                 <a
-                  href="#conditions"
+                  href="#faq"
                   onClick={(e) => {
                     e.stopPropagation()
                     e.preventDefault()
-                    scrollToId('#conditions')
+                    scrollToId('#faq')
                   }}
                   className="text-gold underline underline-offset-2"
                 >
@@ -497,62 +627,23 @@ export default function Booking() {
               Vos informations servent uniquement à établir votre devis et vous recontacter. Elles
               transitent par Telegram et ne sont conservées sur aucun serveur —{' '}
               <a
-                href="#conditions"
+                href="#faq"
                 onClick={(e) => {
                   e.preventDefault()
-                  scrollToId('#conditions')
+                  scrollToId('#faq')
                 }}
                 className="text-gold underline underline-offset-2"
               >
-                détail dans les conditions
+                détail dans la FAQ
               </a>
               .
             </p>
           </form>
-        </Reveal>
-
-        <Reveal delay={0.05} className="lg:col-span-2">
-          <div className="card-lux flex h-full flex-col p-7">
-            <h3 className="font-display text-2xl text-cream">Plus direct</h3>
-            <p className="mt-2 text-sm leading-relaxed text-cream-dim">
-              Un doute sur le forfait, une contrainte d’accès, une urgence ? Un appel règle la
-              question en deux minutes.
-            </p>
-
-            <div className="mt-7 space-y-3">
-              <a href={company.phoneHref} className="btn-gold w-full">
-                {company.phone}
-              </a>
-              <a href={`mailto:${company.email}`} className="btn-ghost w-full">
-                {company.email}
-              </a>
-            </div>
-
-            <dl className="mt-8 space-y-5 border-t border-ink-line pt-7 text-sm">
-              <div>
-                <dt className="text-[10px] uppercase tracking-widest2 text-cream-dim">Basé à</dt>
-                <dd className="mt-1 text-cream">{company.base}</dd>
-              </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-widest2 text-cream-dim">
-                  Zone couverte
-                </dt>
-                <dd className="mt-1 text-cream">
-                  {company.radiusKm} km autour de {serviceBase.name} — {company.region}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-widest2 text-cream-dim">
-                  Disponibilité
-                </dt>
-                <dd className="mt-1 text-cream">Lundi – samedi, 8 h – 19 h</dd>
-              </div>
-            </dl>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
       </div>
 
       {status.state === 'sent' && <SuccessOverlay onClose={closeSuccess} />}
-    </Section>
+    </section>
   )
 }

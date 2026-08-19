@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { parkingNotice, serviceBase, travelFee } from '@/data/site'
 import type { OpeningCounts } from '@/lib/booking'
-import { estimate, estimateRange, isTier } from '@/lib/estimate'
+import { estimate, isTier } from '@/lib/estimate'
 import { MAX_RADIUS_KM } from '@/lib/geo'
 import type { TravelState } from '@/lib/useTravelZone'
 import { euros } from '@/lib/utils'
@@ -16,21 +16,26 @@ export default function EstimatePreview({
   counts,
   shower,
   pack,
+  showerPack,
   travel,
 }: {
   counts: OpeningCounts
   shower: boolean
   pack: string
+  showerPack: string
   travel: TravelState
 }) {
-  const tier = isTier(pack) ? pack : null
-
   // Le forfait déplacement n'entre dans le total que si la commune est
   // effectivement localisée dans la couronne 25–50 km.
   const appliedTravelFee = travel.status === 'ok' && travel.zone === 'fee' ? travelFee.fee : 0
 
-  const range = estimateRange(counts, shower, appliedTravelFee)
-  const result = tier ? estimate(counts, shower, tier, appliedTravelFee) : range.premium
+  const result = estimate({
+    counts,
+    tier: isTier(pack) ? pack : null,
+    shower,
+    showerTier: isTier(showerPack) ? showerPack : null,
+    travelFeeEur: appliedTravelFee,
+  })
   const isEmpty = result.lines.length === 0
 
   return (
@@ -46,13 +51,13 @@ export default function EstimatePreview({
         <div aria-live="polite" className="mt-3">
           {isEmpty ? (
             <p className="text-sm text-cream-dim">
-              Renseignez vos ouvrants pour obtenir une estimation.
+              Renseignez vos ouvrants ou l’option vitres de douche pour obtenir une estimation.
             </p>
-          ) : tier ? (
+          ) : result.exact ? (
             <p className="flex flex-wrap items-baseline gap-x-2">
               <span className="text-sm text-cream-dim">À partir de</span>
               <span className="font-display text-4xl leading-none text-gold sm:text-5xl">
-                {euros(result.total)}
+                {euros(result.total.min)}
               </span>
             </p>
           ) : (
@@ -60,15 +65,15 @@ export default function EstimatePreview({
               <p className="flex flex-wrap items-baseline gap-x-2">
                 <span className="text-sm text-cream-dim">Entre</span>
                 <span className="font-display text-3xl leading-none text-gold sm:text-4xl">
-                  {euros(range.premium.total)}
+                  {euros(result.total.min)}
                 </span>
                 <span className="text-sm text-cream-dim">et</span>
                 <span className="font-display text-3xl leading-none text-gold sm:text-4xl">
-                  {euros(range.excellence.total)}
+                  {euros(result.total.max)}
                 </span>
               </p>
               <p className="mt-2 text-xs text-cream-dim">
-                Choisissez un forfait ci-dessous pour affiner le montant.
+                Choisissez vos forfaits ci-dessous pour affiner le montant.
               </p>
             </>
           )}
@@ -85,27 +90,26 @@ export default function EstimatePreview({
             >
               <ul className="mt-5 space-y-2 border-t border-gold/20 pt-4">
                 {result.lines.map((line) => {
-                  // Le déplacement est un montant fixe : il ne varie pas d'un
-                  // forfait à l'autre et ne doit donc pas s'afficher en fourchette.
+                  // Le déplacement est un montant fixe : ni quantité, ni fourchette.
                   const isFlat = line.id === 'travel'
-                  const high = range.excellence.lines.find((l) => l.id === line.id)?.total ?? 0
+                  const fixed = line.amount.min === line.amount.max
 
                   return (
                     <li key={line.id} className="flex items-baseline justify-between gap-4 text-xs">
                       <span className="text-cream-dim">
                         {!isFlat && <span className="text-cream">{line.quantity} × </span>}
                         {line.label}
-                        {tier && !isFlat && (
-                          <span className="text-cream-dim/70"> à {euros(line.unitPrice)}</span>
-                        )}
                         {isFlat && (
-                          <span className="text-cream-dim/70"> ({travelFee.freeRadiusKm}–{MAX_RADIUS_KM} km)</span>
+                          <span className="text-cream-dim/70">
+                            {' '}
+                            ({travelFee.freeRadiusKm}–{MAX_RADIUS_KM} km)
+                          </span>
                         )}
                       </span>
                       <span className="shrink-0 tabular-nums text-cream">
-                        {tier || isFlat
-                          ? euros(line.total)
-                          : `${euros(line.total)} – ${euros(high)}`}
+                        {fixed
+                          ? euros(line.amount.min)
+                          : `${euros(line.amount.min)} – ${euros(line.amount.max)}`}
                       </span>
                     </li>
                   )

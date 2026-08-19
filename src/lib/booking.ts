@@ -41,12 +41,15 @@ export type BookingPayload = {
   acceptedTerms: boolean
 }
 
-/** Détail de l’option douche, tarif inclus, selon le forfait retenu. */
-export function showerDetail(v: { shower: boolean; pack: string }): string {
+/**
+ * Détail de l’option douche, tarif inclus, selon le forfait retenu **pour la
+ * douche** — qui peut différer de celui choisi pour les vitres.
+ */
+export function showerDetail(v: { shower: boolean; showerPack?: string }): string {
   if (!v.shower) return 'non'
-  return v.pack === 'excellence'
-    ? `oui — ${showerPricing.excellence} € avec traitement nano hydrophobe`
-    : `oui — ${showerPricing.premium} € nettoyage complet`
+  return v.showerPack === 'excellence'
+    ? `oui — Excellence, ${showerPricing.excellence} € avec traitement nano hydrophobe`
+    : `oui — Premium, ${showerPricing.premium} € nettoyage complet`
 }
 
 export function totalOpenings(counts: OpeningCounts): number {
@@ -103,7 +106,7 @@ export function buildMessageLines(v: BookingPayload): string[] {
 
   lines.push(
     '',
-    `Forfait souhaité : ${packLabel(v.pack)}`,
+    v.pack ? `Forfait vitres : ${packLabel(v.pack)}` : 'Forfait vitres : sans objet (douche seule)',
     `Option ${showerOption.name} : ${showerDetail(v)}`,
     `Date souhaitée : ${frDate(v.date)}`,
   )

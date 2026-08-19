@@ -16,7 +16,8 @@ export default function Footer() {
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-cream-dim">
               Nettoyage de vitres pour particuliers et professionnels en {company.region}.
               Intervention dans un rayon de {company.radiusKm} km autour de {serviceBase.name} :
-              Obernai, Sélestat, Molsheim, Benfeld, Colmar, Strasbourg et alentours.
+              Andlau, Obernai, Rosheim, Benfeld, Molsheim, Erstein, Sélestat, Ribeauvillé,
+              Strasbourg, Colmar, Saverne et les communes alentour.
             </p>
           </div>
 
@@ -62,11 +63,11 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Conditions essentielles reprises ici : le visiteur qui descend
+        {/* L’essentiel reprises ici : le visiteur qui descend
             directement au footer ne doit pas avoir à remonter pour les trouver. */}
         <div className="mt-14 border-t border-ink-line pt-10">
           <h2 className="text-[10px] uppercase tracking-widest2 text-cream-dim">
-            Conditions essentielles
+            L’essentiel
           </h2>
 
           <dl className="mt-5 grid gap-6 sm:grid-cols-2">
@@ -86,14 +87,14 @@ export default function Footer() {
                 honoré : 30 % du devis, sauf force majeure justifiée. Report gratuit en cas
                 d’intempéries.{' '}
                 <a
-                  href="#conditions"
+                  href="#faq"
                   onClick={(e) => {
                     e.preventDefault()
-                    scrollToId('#conditions')
+                    scrollToId('#faq')
                   }}
                   className="text-gold underline underline-offset-2"
                 >
-                  Détail des conditions
+                  Toutes les questions fréquentes
                 </a>
               </dd>
             </div>
@@ -112,10 +113,10 @@ export default function Footer() {
             {company.city}. SIREN / SIRET : {company.siret}. Hébergeur : {company.host.name},{' '}
             {company.host.address}.{' '}
             <a
-              href="#conditions"
+              href="#faq"
               onClick={(e) => {
                 e.preventDefault()
-                scrollToId('#conditions')
+                scrollToId('#faq')
               }}
               className="text-gold underline underline-offset-2"
             >

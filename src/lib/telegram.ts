@@ -34,7 +34,7 @@ function toApiBody(v: BookingPayload) {
   const { acceptTerms: _ignored, ...rest } = v as BookingPayload & { acceptTerms?: boolean }
   return {
     ...rest,
-    pack: packLabel(v.pack),
+    pack: v.pack ? packLabel(v.pack) : 'sans objet (douche seule)',
     date: frDate(v.date),
     // Le serveur ne connaît pas la grille : il reçoit le libellé tout fait.
     showerDetail: showerDetail(v),

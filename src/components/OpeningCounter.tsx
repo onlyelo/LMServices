@@ -26,11 +26,14 @@ export default function OpeningCounter({
   }
 
   return (
-    <ul className="divide-y divide-ink-line rounded-xl border border-ink-line bg-ink-soft">
+    <ul className="grid gap-2 sm:grid-cols-2">
       {openings.map((o) => {
         const value = counts[o.id] ?? 0
         return (
-          <li key={o.id} className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+          <li
+            key={o.id}
+            className="flex items-center gap-3 rounded-xl border border-ink-line bg-ink-soft p-3"
+          >
             <span
               className={cn(
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition',

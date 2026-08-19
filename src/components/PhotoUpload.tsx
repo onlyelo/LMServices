@@ -158,7 +158,7 @@ export default function PhotoUpload({
       )}
 
       <p className="mt-2 text-xs leading-relaxed text-cream-dim">
-        Quelques photos accélèrent nettement le devis. {MAX_PHOTOS} maximum, 4 Mo par photo.
+        Elles accélèrent nettement le devis. {MAX_PHOTOS} maximum, 4 Mo par photo.
       </p>
     </div>
   )

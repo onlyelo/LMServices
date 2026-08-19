@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { packs, pricingNotes } from '@/data/site'
+import { packs } from '@/data/site'
 import { cn, euros, scrollToId } from '@/lib/utils'
 import Section from './Section'
 import Reveal from './Reveal'
@@ -11,6 +11,12 @@ function choosePack(id: string) {
   scrollToId('#reservation')
 }
 
+/**
+ * Trois offres alignées : l'option douche, puis les deux forfaits.
+ *
+ * En tablette la grille passe à deux colonnes et la dernière carte se centre
+ * seule sur sa ligne, plutôt que de rester collée à gauche.
+ */
 export default function Services() {
   return (
     <Section
@@ -25,97 +31,101 @@ export default function Services() {
       }
       intro="Le tarif dépend du nombre et du type d’ouvrants à traiter."
     >
-      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-        {packs.map((p, i) => (
-          <Reveal key={p.id} delay={i * 0.05}>
-            <motion.article
-              whileHover={{ y: -6 }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-7">
+        <ShowerOption />
+
+        {packs.map((p, i) => {
+          const isLast = i === packs.length - 1
+          return (
+            <Reveal
+              key={p.id}
+              delay={(i + 1) * 0.05}
               className={cn(
-                'card-lux relative flex h-full flex-col p-7 sm:p-9',
-                p.featured && 'border-gold/45 shadow-goldglow',
+                'h-full',
+                isLast &&
+                  'md:col-span-2 md:mx-auto md:w-full md:max-w-md lg:col-span-1 lg:max-w-none',
               )}
             >
-              {p.featured && (
-                <span className="absolute -top-3 left-7 rounded-full bg-gold px-3.5 py-1 text-[10px] font-semibold uppercase tracking-widest2 text-ink">
-                  Le plus demandé
-                </span>
-              )}
-
-              <header>
-                <h3 className="font-display text-3xl text-cream sm:text-4xl">{p.name}</h3>
-                <p className="mt-2 text-sm text-cream-dim">{p.subtitle}</p>
-              </header>
-
-              {/* Le prix unitaire est la vraie unite de facturation : il est affiche
-                  en valeur principale pour ne pas laisser croire a un forfait minimum. */}
-              <div className="mt-7 border-y border-ink-line py-6">
-                <div className="flex items-end gap-2">
-                  <span className="font-display text-5xl leading-none text-gold">
-                    {euros(p.perWindow)}
+              <motion.article
+                whileHover={{ y: -6 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className={cn(
+                  'card-lux relative flex h-full flex-col p-7',
+                  p.featured && 'border-gold/45 shadow-goldglow',
+                )}
+              >
+                {p.featured && (
+                  <span className="absolute -top-3 left-7 rounded-full bg-gold px-3.5 py-1 text-[10px] font-semibold uppercase tracking-widest2 text-ink">
+                    Le plus demandé
                   </span>
-                  <span className="pb-1 text-sm text-cream-dim">par fenêtre</span>
+                )}
+
+                <header>
+                  <span className="text-[10px] uppercase tracking-widest2 text-cream-dim">
+                    Forfait
+                  </span>
+                  <h3 className="mt-2 font-display text-3xl text-cream">{p.name}</h3>
+                  <p className="mt-2 text-sm text-cream-dim">{p.subtitle}</p>
+                </header>
+
+                {/* Le prix unitaire est la vraie unité de facturation : il est
+                    affiché en valeur principale pour ne pas laisser croire à un
+                    forfait minimum. */}
+                <div className="mt-6 border-y border-ink-line py-5">
+                  <div className="flex items-end gap-2">
+                    <span className="font-display text-4xl leading-none text-gold">
+                      {euros(p.perWindow)}
+                    </span>
+                    <span className="pb-0.5 text-sm text-cream-dim">par fenêtre</span>
+                  </div>
                 </div>
-              </div>
 
-              <p className="mt-6 text-sm leading-relaxed text-cream-dim">{p.pitch}</p>
+                <p className="mt-5 text-sm leading-relaxed text-cream-dim">{p.pitch}</p>
 
-              <ul className="mt-7 space-y-3">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-3 text-sm text-cream/90">
-                    <svg
-                      aria-hidden
-                      viewBox="0 0 20 20"
-                      className={cn('mt-0.5 h-4 w-4 shrink-0', p.featured ? 'text-gold' : 'text-gold/70')}
-                    >
-                      <path
-                        d="M4 10.5l4 4 8-9"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
+                <ul className="mt-6 space-y-2.5">
+                  {p.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-cream/90">
+                      <svg
+                        aria-hidden
+                        viewBox="0 0 20 20"
+                        className={cn(
+                          'mt-0.5 h-4 w-4 shrink-0',
+                          p.featured ? 'text-gold' : 'text-gold/70',
+                        )}
+                      >
+                        <path
+                          d="M4 10.5l4 4 8-9"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
 
-              <p className="mt-7 rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-xs text-cream-dim">
-                {p.highlight}
-              </p>
-
-              <div className="mt-7 pt-1">
-                <button
-                  type="button"
-                  onClick={() => choosePack(p.id)}
-                  className={cn('w-full', p.featured ? 'btn-gold' : 'btn-ghost')}
-                >
-                  Choisir {p.name}
-                </button>
-              </div>
-            </motion.article>
-          </Reveal>
-        ))}
+                {/* mt-auto plaque le bas de carte : quelles que soient les
+                    longueurs de listes, les boutons restent alignés. */}
+                <div className="mt-auto pt-6">
+                  <p className="rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-xs text-cream-dim">
+                    {p.highlight}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => choosePack(p.id)}
+                    className={cn('mt-4 w-full', p.featured ? 'btn-gold' : 'btn-ghost')}
+                  >
+                    Choisir {p.name}
+                  </button>
+                </div>
+              </motion.article>
+            </Reveal>
+          )
+        })}
       </div>
-
-      <div className="mt-6">
-        <ShowerOption />
-      </div>
-
-      <Reveal delay={0.05}>
-        <ul className="mt-10 grid gap-2.5 text-xs text-cream-dim sm:grid-cols-2">
-          {pricingNotes.map((n) => (
-            <li key={n} className="flex gap-2.5">
-              <span className="text-gold" aria-hidden>
-                —
-              </span>
-              <span>{n}</span>
-            </li>
-          ))}
-        </ul>
-      </Reveal>
     </Section>
   )
 }
