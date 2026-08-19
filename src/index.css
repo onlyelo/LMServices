@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Compense le header fixe lors des ancres */
+    scroll-padding-top: 5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    @apply bg-ink text-cream font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    /* 'clip' et non 'hidden' : 'hidden' ferait du body un conteneur de
+       defilement et casserait scrollIntoView vers les ancres. */
+    overflow-x: clip;
+  }
+
+  ::selection {
+    @apply bg-gold text-ink;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* evite le zoom auto iOS au focus */
+  }
+
+  /* iOS impose une largeur intrinseque aux champs date/heure : sans ces
+     regles, le champ deborde de sa colonne en portrait (375 px). */
+  input[type='date'] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  input[type='date']::-webkit-date-and-time-value {
+    text-align: left;
+    margin: 0;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(72%) sepia(35%) saturate(520%) hue-rotate(2deg);
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .container-lux {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+
+  .eyebrow {
+    @apply text-[11px] uppercase tracking-widest2 text-gold/90 font-medium;
+  }
+
+  .h-section {
+    @apply font-display text-3xl leading-tight sm:text-4xl md:text-5xl;
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold px-7 py-3.5
+           text-sm font-medium tracking-wide text-ink transition
+           hover:bg-gold-light active:scale-[0.98]
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-cream/25 px-7 py-3.5
+           text-sm font-medium tracking-wide text-cream transition
+           hover:border-gold hover:text-gold active:scale-[0.98]
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+  }
+
+  .card-lux {
+    @apply rounded-2xl border border-ink-line bg-ink-card/80 backdrop-blur-sm;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-cream
+           placeholder:text-cream-dim/50 transition
+           focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold/60;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs uppercase tracking-widest2 text-cream-dim;
+  }
+}
+
+/* Leaflet : ancrer la carte dans la charte sombre */
+.leaflet-container {
+  background: #0a0a0b;
+  font-family: Inter, system-ui, sans-serif;
+}
+.leaflet-control-attribution {
+  background: rgba(10, 10, 11, 0.75) !important;
+  color: #a9a69f !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: #c9a24a !important;
+}
+.leaflet-bar a {
+  background: #16161a !important;
+  color: #f4f1ea !important;
+  border-color: #26262c !important;
+}
+.leaflet-bar a:hover {
+  background: #26262c !important;
+}
+
+/* Popups des communes : le style Leaflet par defaut est blanc, illisible
+   sur la charte sombre. */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #16161a;
+  color: #f4f1ea;
+  border: 1px solid #26262c;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.8);
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+}
+.leaflet-popup-content {
+  margin: 12px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.leaflet-popup-content strong {
+  color: #e3c77e;
+  font-weight: 500;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: #a9a69f;
+  padding: 8px 8px 0 0;
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #c9a24a;
+  background: transparent;
+}
+.leaflet-tooltip {
+  background: #16161a;
+  border: 1px solid #26262c;
+  color: #f4f1ea;
+  box-shadow: none;
+}
+.leaflet-tooltip-top::before {
+  border-top-color: #26262c;
+}

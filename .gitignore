@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Secrets — seul .env.example est versionne
+.env
+.env.*
+!.env.example
+
+logs
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea

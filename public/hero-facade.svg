@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Façade vitrée">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#1B1D24"/>
+      <stop offset="45%" stop-color="#101116"/>
+      <stop offset="100%" stop-color="#08080A"/>
+    </linearGradient>
+    <linearGradient id="pane" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22262F" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#14161B" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0C0D10" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#C9A24A" stop-opacity="0"/>
+      <stop offset="42%" stop-color="#E3C77E" stop-opacity="0.30"/>
+      <stop offset="52%" stop-color="#F4F1EA" stop-opacity="0.16"/>
+      <stop offset="62%" stop-color="#C9A24A" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#C9A24A" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.72" cy="0.22" r="0.62">
+      <stop offset="0%" stop-color="#C9A24A" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="#C9A24A" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="200" height="250" patternUnits="userSpaceOnUse">
+      <rect width="200" height="250" fill="url(#pane)"/>
+      <rect x="3" y="3" width="194" height="244" fill="none" stroke="#2B2F38" stroke-width="1.5"/>
+      <line x1="100" y1="3" x2="100" y2="247" stroke="#23262D" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <g transform="skewY(-4)">
+    <rect x="-60" y="60" width="1720" height="1100" fill="url(#grid)" opacity="0.92"/>
+    <rect x="-60" y="60" width="1720" height="1100" fill="url(#sheen)"/>
+  </g>
+  <rect width="1600" height="1000" fill="url(#glow)"/>
+  <rect width="1600" height="1000" fill="#08080A" opacity="0.34"/>
+</svg>
