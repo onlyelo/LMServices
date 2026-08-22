@@ -16,7 +16,12 @@ export const BASE = { lat: serviceBase.lat, lon: serviceBase.lon } as const
 
 export type Zone = 'free' | 'fee' | 'quote'
 
-export type Point = { lat: number; lon: number }
+export type Point = {
+  lat: number
+  lon: number
+  /** Nom de la commune renvoyé par Nominatim, quand il est disponible. */
+  label?: string
+}
 
 /** Seuils de facturation du déplacement, en kilomètres. */
 export const FREE_RADIUS_KM = serviceBase.freeRadiusKm
@@ -61,10 +66,21 @@ async function query(params: Record<string, string>, signal?: AbortSignal): Prom
   const data: unknown = await res.json()
   if (!Array.isArray(data) || data.length === 0) return null
 
-  const first = data[0] as { lat?: string; lon?: string }
+  const first = data[0] as { lat?: string; lon?: string; name?: string; display_name?: string }
   const lat = Number(first.lat)
   const lon = Number(first.lon)
-  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+
+  // `display_name` est très verbeux (« 67210, Obernai, Bas-Rhin, … ») :
+  // on garde `name` quand il existe, sinon le premier segment utile.
+  const label =
+    first.name ??
+    first.display_name
+      ?.split(",")
+      .map((part) => part.trim())
+      .find((part) => part.length > 0 && !/^d{5}$/.test(part))
+
+  return { lat, lon, label }
 }
 
 /**

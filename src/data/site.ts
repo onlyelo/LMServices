@@ -47,16 +47,19 @@ export const serviceBase = {
 /* ------------------------------------------------------------------ */
 
 export type Pack = {
-  id: 'premium' | 'excellence'
+  id: 'premium' | 'excellence' | 'signature'
   name: string
   subtitle: string
-  /** Exemple pour une maison type de 12 fenêtres — jamais un plancher. */
-  exampleHouse: number
-  perWindow: number
+  /** Exemple pour une maison type de 12 fenêtres. Absent si le forfait est sur devis. */
+  exampleHouse?: number
+  /** Prix d’une fenêtre standard. Absent si le forfait est sur devis. */
+  perWindow?: number
+  /** Vrai quand aucun prix ne peut être annoncé sans étude préalable. */
+  quoteOnly?: boolean
   featured: boolean
   pitch: string
   features: string[]
-  highlight: string
+  highlight?: string
 }
 
 /**
@@ -73,8 +76,8 @@ export const packs: Pack[] = [
     perWindow: 7,
     featured: false,
     pitch:
-      "Le nettoyage complet de vos surfaces vitrées, intérieur et extérieur, réalisé à la raclette professionnelle. Le standard que la plupart des prestataires appellent déjà du haut de gamme.",
-    highlight: 'Exemple — 12 fenêtres standard : à partir de 84 €',
+      'Le nettoyage complet de vos surfaces vitrées, intérieur et extérieur, pour une finition propre, nette et sans traces.',
+    highlight: 'Exemple : 12 fenêtres standard à partir de 84 €',
     features: [
       'Vitres intérieur + extérieur',
       'Cadres, montants et rebords essuyés',
@@ -92,15 +95,30 @@ export const packs: Pack[] = [
     perWindow: 10,
     featured: true,
     pitch:
-      'Là où le regard s’arrête d’habitude, nous continuons. L’ouvrant est repris dans son entier — le verre, mais aussi tout ce qui l’encadre et retient la saleté année après année. Une fenêtre qui paraît neuve, pas simplement propre.',
-    highlight: 'Exemple — 12 fenêtres standard : à partir de 120 €',
+      'Là où le regard s’arrête d’habitude, nous continuons. L’ouvrant est repris dans son entier : le verre, mais aussi tout ce qui l’encadre et retient la saleté année après année. Une fenêtre qui paraît neuve, pas simplement propre.',
+    highlight: 'Exemple : 12 fenêtres standard à partir de 120 €',
     features: [
       'Tout le forfait Premium inclus',
       'Toute la saleté éliminée : cadres, joints, rebords, ouvrants',
       'Rails, gonds et feuillures repris un à un',
       'Séchage sans traces garanti',
       'Sans odeurs résiduelles',
-      'Retouche gratuite sous 7 jours',
+    ],
+  },
+  {
+    id: 'signature',
+    name: 'Signature',
+    subtitle: 'Sur devis — cas par cas',
+    quoteOnly: true,
+    featured: false,
+    pitch:
+      'Une solution dédiée principalement aux ouvrants extérieurs. Après nettoyage, nous appliquons un revêtement nano texturé qui limite durablement l’apparition des salissures et facilite les nettoyages suivants. L’eau perle, la vitre reste propre plus longtemps.',
+    features: [
+      'Nettoyage complet préalable des ouvrants',
+      'Revêtement nano texturé sur le vitrage extérieur',
+      'Salissures durablement limitées',
+      'Nettoyages suivants nettement facilités',
+      'Étude préalable de la surface et de l’accessibilité',
     ],
   },
 ]
@@ -135,18 +153,46 @@ export const openings: Opening[] = [
 ]
 
 /**
- * La paroi de douche complète figure dans la même grille, mais elle se coche
- * dans le formulaire au lieu de se compter : une seule ligne suffit.
+ * Deux formules opposées, pas deux niveaux de gamme : on nettoie, ou on
+ * nettoie et on protège. Ce choix est indépendant du forfait retenu pour les
+ * vitres, et l’option peut être réservée seule.
  */
 export const showerPricing = {
   id: 'douche',
   label: 'Vitres de douche',
-  hint: 'Douche complète',
-  /** Nettoyage complet de la douche. */
-  premium: 39,
-  /** Nettoyage complet + traitement nano hydrophobe. */
-  excellence: 79,
+  formulas: [
+    {
+      id: 'seul',
+      name: 'Nettoyage seul',
+      price: 39,
+      detail: 'Décapage complet du voile calcaire, paroi et joints.',
+      features: [
+        'Détartrage en profondeur de toutes les parois',
+        'Profilés, joints et bas de parois repris à la main',
+        'Rails de porte dégraissés',
+      ],
+    },
+    {
+      id: 'complet',
+      name: 'Forfait complet',
+      price: 79,
+      detail: 'Nettoyage puis protection nano hydrophobe : l’eau perle, durée estimée 12 mois.',
+      features: [
+        'Tout le nettoyage seul inclus',
+        'Protection nano hydrophobe appliquée à la main',
+        'Nettement moins de traces de calcaire au quotidien',
+        'Entretien courant très allégé',
+      ],
+    },
+  ],
 } as const
+
+export type ShowerFormulaId = (typeof showerPricing.formulas)[number]['id']
+
+/** Retrouve une formule par son identifiant, pour le calcul et les messages. */
+export function showerFormula(id: string) {
+  return showerPricing.formulas.find((f) => f.id === id)
+}
 
 
 /* ------------------------------------------------------------------ */
@@ -154,7 +200,7 @@ export const showerPricing = {
 /* ------------------------------------------------------------------ */
 
 /**
- * Prestation d'appoint, jamais vendue seule : elle se greffe sur un forfait.
+ * Option complémentaire, présentée sous les trois forfaits.
  * Tarif calé sur le détartrage professionnel (150–200 € pour 2–4 h) ramené
  * à une douche complète, soit environ 1 h 30 de travail.
  * La durée de protection suit ce qu'annoncent les traitements nano
@@ -163,22 +209,12 @@ export const showerPricing = {
 export const showerOption = {
   name: 'Vitres de douche',
   tagline: 'L’option qui fait durer le résultat',
-  /** Les deux niveaux suivent la grille : Premium nettoie, Excellence protège. */
-  premium: showerPricing.premium,
-  excellence: showerPricing.excellence,
   protectionMonths: 12,
   pitch:
-    'Le calcaire s’installe sur une paroi de douche plus vite que partout ailleurs. Nous décapons le voile accumulé, puis, en Excellence, nous appliquons une protection nano hydrophobe : l’eau ne s’étale plus, elle perle et s’écoule en emportant le dépôt.',
-  premiumFeatures: [
-    'Détartrage en profondeur de toutes les parois',
-    'Profilés, joints et bas de parois repris à la main',
-    'Rails de porte dégraissés',
-  ],
-  excellenceFeatures: [
-    'Tout le nettoyage Premium inclus',
-    'Traitement nano hydrophobe : l’eau perle et s’écoule',
-    'Nettement moins de traces de calcaire au quotidien',
-    'Entretien courant très allégé',
+    'Le calcaire s’installe sur une paroi de douche plus vite que partout ailleurs. Nous décapons le voile accumulé, puis nous appliquons une protection nano hydrophobe : l’eau ne s’étale plus, elle perle et s’écoule en emportant le dépôt.',
+  conditions: [
+    'Cette option peut être réservée seule, sans forfait vitres.',
+    'Le traitement nano hydrophobe nécessite obligatoirement le nettoyage préalable de la paroi, et reste soumis aux conditions d’application : état de la surface et accessibilité.',
   ],
   note: 'Protection estimée à 12 mois selon la fréquence d’usage, la dureté de l’eau et les produits d’entretien employés. Les nettoyants abrasifs la retirent prématurément.',
 }
@@ -211,25 +247,51 @@ export const travelFee = {
 /* ------------------------------------------------------------------ */
 
 /**
- * Deux cas, pas davantage : au-delà de 24 h rien n'est dû, en deçà le créneau
- * est perdu. Le rendez-vous non honoré est traité comme une annulation
- * tardive plutôt que comme une faute, et la force majeure lève les frais.
+ * Barème d'annulation et conditions de réservation.
+ * Le seuil de 150 € sépare deux régimes : engagement de confiance sans
+ * acompte en dessous, acompte de 30 % qui verrouille le créneau au-dessus.
  */
 export const cancellationPolicy = [
   {
-    when: 'Plus de 24 h avant l’intervention',
+    when: 'Plus de 48 h avant',
     fee: 'Sans frais',
-    detail: 'Annulation ou report sans frais, sans justification requise.',
+    detail: 'Annulation ou report libre, sans justification à fournir.',
     free: true,
   },
   {
-    when: 'Moins de 24 h, ou rendez-vous non honoré',
+    when: 'Moins de 48 h avant',
     fee: '30 % du devis',
     detail:
-      'Sauf cas de force majeure — urgence médicale justifiable, hospitalisation, décès d’un proche — sur présentation d’un justificatif.',
+      'L’acompte de 30 % versé à la commande reste acquis au prestataire à titre d’indemnité forfaitaire. Sans acompte, cette indemnité reste due.',
+    free: false,
+  },
+  {
+    when: 'Moins de 24 h, ou absence au rendez-vous',
+    fee: '50 % du devis',
+    detail: '50 % du montant total du devis devient exigible.',
     free: false,
   },
 ]
+
+/** Régime d'acompte, fonction du montant de l'intervention. */
+export const bookingTerms = [
+  {
+    range: 'Jusqu’à 150 €',
+    deposit: 'Aucun acompte',
+    detail:
+      'Votre réservation repose sur un engagement mutuel de confiance. En cas d’annulation à moins de 48 h ou d’absence lors de notre venue, une indemnité forfaitaire de 30 % du montant du devis reste due.',
+  },
+  {
+    range: 'Au-delà de 150 €',
+    deposit: 'Acompte de 30 %',
+    detail:
+      'Demandé afin de valider et verrouiller votre créneau dans notre planning. Le règlement peut s’effectuer en ligne par carte bancaire ou par chèque.',
+  },
+]
+
+/** Résumé court, affiché près de la case à cocher du formulaire. */
+export const cancellationSummary =
+  'Annulation sans frais jusqu’à 48 h avant l’intervention. Moins de 48 h : 30 % du devis. Moins de 24 h ou absence au rendez-vous : 50 %. Au-delà de 150 €, un acompte de 30 % verrouille le créneau.'
 
 /* ------------------------------------------------------------------ */
 /* Questions fréquentes                                                 */
@@ -263,7 +325,13 @@ export const faq = [
     id: 'annulation',
     question: 'Quelle est votre politique d’annulation ?',
     answer:
-      'Plus de 24 h avant l’intervention : annulation ou report sans frais, sans justification à fournir. Moins de 24 h, ou rendez-vous non honoré : 30 % du montant du devis, sauf cas de force majeure justifié — urgence médicale, hospitalisation, décès d’un proche. En cas d’intempéries, nous reportons nous-mêmes sans aucun frais.',
+      'Toute annulation doit être notifiée au moins 48 heures avant la date prévue de l’intervention. En cas d’annulation effectuée moins de 48 heures avant le rendez-vous, l’acompte de 30 % versé à la commande restera acquis au prestataire à titre d’indemnité forfaitaire. Pour toute annulation à moins de 24 h ou en cas d’absence du client lors du rendez-vous, 50 % du montant total du devis sera exigible.',
+  },
+  {
+    id: 'reservation',
+    question: 'Faut-il verser un acompte à la réservation ?',
+    answer:
+      'Cela dépend du montant. Jusqu’à 150 €, aucun acompte n’est demandé : votre réservation repose sur un engagement mutuel de confiance, et en cas d’annulation à moins de 48 h ou d’absence lors de notre venue, une indemnité forfaitaire de 30 % du montant du devis reste due. Au-delà de 150 €, un acompte de 30 % est demandé afin de valider et verrouiller votre créneau dans notre planning ; le règlement peut s’effectuer en ligne par carte bancaire ou par chèque.',
   },
   {
     id: 'devis',
@@ -300,6 +368,7 @@ export const privacyNotice = {
 }
 
 export const cancellationNotes = [
+  'Toute annulation doit être notifiée au moins 48 heures avant la date prévue de l’intervention.',
   'Intempéries, maladie, imprévu grave : nous reportons sans aucun frais, y compris au dernier moment.',
   'Annulation de notre fait : aucun frais, et nous vous proposons un nouveau créneau en priorité.',
   'Devis signé à votre domicile : vous disposez de 14 jours de rétractation (art. L221-18 du Code de la consommation).',

@@ -38,11 +38,11 @@ export default function Hero() {
           variants={fade}
           className="mt-6 max-w-3xl font-display text-[2.6rem] leading-[1.08] text-cream sm:text-6xl md:text-7xl"
         >
-          La lumière,
+          Retrouvez la lumière,
           <br />
-          <span className="italic text-gold">sans un seul reflet</span>
+          <span className="italic text-gold">sans reflets gênants.</span>
           <br />
-          de travers.
+          Naturellement éclatant.
         </motion.h1>
 
         <motion.p

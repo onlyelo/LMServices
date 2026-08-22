@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { cancellationNotes, faq, legalNotice, privacyNotice } from '@/data/site'
+import { bookingTerms, cancellationNotes, faq, legalNotice, privacyNotice } from '@/data/site'
 import { cn } from '@/lib/utils'
 import Reveal from './Reveal'
 
@@ -105,6 +105,20 @@ export default function Faq() {
                 onToggle={() => toggle(item.id)}
               >
                 <p className="text-sm leading-relaxed text-cream-dim">{item.answer}</p>
+
+                {item.id === 'reservation' && (
+                  <dl className="mt-4 space-y-4 border-t border-ink-line pt-4">
+                    {bookingTerms.map((t) => (
+                      <div key={t.range}>
+                        <dt className="flex flex-wrap items-baseline gap-x-3 text-xs">
+                          <span className="text-cream">{t.range}</span>
+                          <span className="font-medium text-gold">{t.deposit}</span>
+                        </dt>
+                        <dd className="mt-1 text-xs leading-relaxed text-cream-dim">{t.detail}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
 
                 {item.id === 'annulation' && (
                   <ul className="mt-4 space-y-2 border-t border-ink-line pt-4">

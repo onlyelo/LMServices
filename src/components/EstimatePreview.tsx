@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { parkingNotice, serviceBase, travelFee } from '@/data/site'
 import type { OpeningCounts } from '@/lib/booking'
-import { estimate, isTier } from '@/lib/estimate'
+import { estimate, isQuoteOnly, isTier } from '@/lib/estimate'
 import { MAX_RADIUS_KM } from '@/lib/geo'
 import type { TravelState } from '@/lib/useTravelZone'
 import { euros } from '@/lib/utils'
@@ -25,6 +25,23 @@ export default function EstimatePreview({
   showerPack: string
   travel: TravelState
 }) {
+  // Signature ne se chiffre pas en ligne : l’encart annonce le devis plutôt
+  // qu’un total qui serait faux.
+  if (isQuoteOnly(pack)) {
+    return (
+      <div className="relative overflow-hidden rounded-xl border border-gold/35 bg-gradient-to-b from-gold/[0.09] to-ink-soft p-5 sm:p-6">
+        <p className="eyebrow">Estimation approximative</p>
+        <p className="mt-3 font-display text-2xl leading-snug text-gold sm:text-3xl">
+          Tarif sur devis
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-cream-dim">
+          Le forfait Signature demande une étude de la surface et de l’accessibilité. Nous vous
+          contactons sous 24 h avec une proposition chiffrée.
+        </p>
+      </div>
+    )
+  }
+
   // Le forfait déplacement n'entre dans le total que si la commune est
   // effectivement localisée dans la couronne 25–50 km.
   const appliedTravelFee = travel.status === 'ok' && travel.zone === 'fee' ? travelFee.fee : 0
@@ -33,7 +50,7 @@ export default function EstimatePreview({
     counts,
     tier: isTier(pack) ? pack : null,
     shower,
-    showerTier: isTier(showerPack) ? showerPack : null,
+    showerFormulaId: showerPack || null,
     travelFeeEur: appliedTravelFee,
   })
   const isEmpty = result.lines.length === 0

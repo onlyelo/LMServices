@@ -1,4 +1,4 @@
-import { openings, showerPricing } from '@/data/site'
+import { openings, showerFormula, showerPricing } from '@/data/site'
 import type { OpeningCounts } from './booking'
 
 /**
@@ -15,6 +15,7 @@ import type { OpeningCounts } from './booking'
  * l'est, elle se resserre sur un seul prix.
  */
 
+/** Forfaits chiffrables. Signature en est exclu : il passe par devis. */
 export type Tier = 'premium' | 'excellence'
 
 /** Montant borné. `min === max` dès que le forfait de la ligne est connu. */
@@ -40,6 +41,11 @@ export function isTier(value: string): value is Tier {
   return value === 'premium' || value === 'excellence'
 }
 
+/** Signature ne se chiffre pas en ligne : il n’a pas de grille par ouvrant. */
+export function isQuoteOnly(pack: string): boolean {
+  return pack === 'signature'
+}
+
 /** Prix d'une ligne : figé si le forfait est connu, étendu sinon. */
 function priceFor(prices: { premium: number; excellence: number }, tier: Tier | null): Range {
   return tier
@@ -51,15 +57,15 @@ export function estimate({
   counts,
   tier,
   shower,
-  showerTier,
+  showerFormulaId,
   travelFeeEur = 0,
 }: {
   counts: OpeningCounts
   /** Forfait retenu pour les vitres, null tant qu'il n'est pas choisi. */
   tier: Tier | null
   shower: boolean
-  /** Forfait retenu pour la douche, indépendant de celui des vitres. */
-  showerTier: Tier | null
+  /** Formule retenue pour la douche, indépendante du forfait des vitres. */
+  showerFormulaId: string | null
   /** Forfait déplacement à intégrer au total, 0 si la zone est offerte. */
   travelFeeEur?: number
 }): Estimate {
@@ -82,14 +88,15 @@ export function estimate({
   }
 
   if (shower) {
-    const amount = priceFor(showerPricing, showerTier)
+    const chosen = showerFormula(showerFormulaId ?? '')
+    const prices = showerPricing.formulas.map((f) => f.price)
+    const amount = chosen
+      ? { min: chosen.price, max: chosen.price }
+      : { min: Math.min(...prices), max: Math.max(...prices) }
+
     lines.push({
       id: showerPricing.id,
-      // Excellence inclut le traitement, Premium non : le libellé le dit.
-      label:
-        showerTier === 'excellence'
-          ? `${showerPricing.label} + traitement nano`
-          : showerPricing.label,
+      label: chosen ? `${showerPricing.label} · ${chosen.name}` : showerPricing.label,
       quantity: 1,
       amount,
     })

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
+  cancellationSummary,
   company,
   housingTypes,
   packs,
@@ -16,6 +17,7 @@ import { emptyCounts, totalOpenings, type BookingPayload } from '@/lib/booking'
 import { submitBooking } from '@/lib/submitBooking'
 import { RateLimitError } from '@/lib/telegram'
 import { FRENCH_PHONE, normalizePhone } from '@/lib/phone'
+import { isQuoteOnly } from '@/lib/estimate'
 import { useTravelZone } from '@/lib/useTravelZone'
 import Reveal from './Reveal'
 import OpeningCounter from './OpeningCounter'
@@ -65,14 +67,19 @@ const schema = z
   })
   // Une demande peut ne porter que sur la douche : c’est le total ouvrants
   // OU l’option douche qui doit être renseigné, pas les deux.
-  .refine((v) => totalOpenings(v.counts) > 0 || v.shower, {
-    message: 'Indiquez au moins un ouvrant, ou cochez l’option vitres de douche.',
+// Une demande est recevable si elle porte sur des ouvrants, sur la douche,
+  // ou sur le forfait Signature — qui se chiffre sur devis, sans compteurs.
+  .refine((v) => totalOpenings(v.counts) > 0 || v.shower || v.pack === 'signature', {
+    message: 'Indiquez au moins un ouvrant, l’option vitres de douche, ou le forfait Signature.',
     path: ['counts'],
   })
-  .refine((v) => totalOpenings(v.counts) === 0 || v.pack.length > 0, {
-    message: 'Choisissez un forfait pour vos vitres.',
-    path: ['pack'],
-  })
+  .refine(
+    (v) => v.pack === 'signature' || totalOpenings(v.counts) === 0 || v.pack.length > 0,
+    {
+      message: 'Choisissez un forfait pour vos vitres.',
+      path: ['pack'],
+    },
+  )
   .refine((v) => !v.shower || v.showerPack.length > 0, {
     message: 'Choisissez un forfait pour les vitres de douche.',
     path: ['showerPack'],
@@ -150,7 +157,9 @@ export default function Booking() {
   useEffect(() => {
     const onSelect = (e: Event) => {
       const id = (e as CustomEvent<string>).detail
-      if (id === 'premium' || id === 'excellence') {
+      // La liste suit `packs` : oublier un identifiant ici rend le bouton de
+      // la carte correspondante silencieusement inopérant.
+      if (packs.some((p) => p.id === id)) {
         setValue('pack', id, { shouldValidate: true })
       }
     }
@@ -217,13 +226,13 @@ export default function Booking() {
 
               <p className="mt-6 text-sm leading-relaxed text-cream-dim">
                 Quelques informations suffisent : vous recevez une estimation immédiate à l’écran,
-                puis un devis ferme sous 24 h.
+                puis un devis sous 24 h.
               </p>
 
               <dl className="mt-8 grid grid-cols-2 gap-5 border-y border-ink-line py-6 lg:grid-cols-1 lg:gap-6">
                 {[
                   { k: 'Réponse', v: 'Sous 24 h' },
-                  { k: 'Devis', v: 'Gratuit, sans engagement' },
+                  { k: 'Devis', v: 'Gratuit, réponse sous 24 h' },
                   { k: 'Déplacement', v: `Offert jusqu’à ${travelFee.freeRadiusKm} km` },
                   { k: 'Disponibilité', v: 'Lundi – samedi, 8 h – 19 h' },
                 ].map((item) => (
@@ -377,46 +386,13 @@ export default function Booking() {
                 <FieldError msg={errors.housing?.message} />
               </div>
 
+              {/* Signature se chiffre sur devis : compter les ouvrants n’aurait
+                  aucun effet sur le montant, autant ne pas le demander. */}
               <div className="min-w-0 sm:col-span-6">
-                <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="label !mb-0">Ouvrants à traiter</span>
-                  <span className="text-xs text-cream-dim">
-                    Total :{' '}
-                    <span className={total > 0 ? 'text-gold' : 'text-cream-dim'}>{total}</span>
-                  </span>
-                </div>
-
-                <OpeningCounter
-                  counts={counts}
-                  onChange={(update) =>
-                    // getValues lit l’état courant du formulaire, pas la valeur
-                    // capturée au rendu : les appuis rapides s’additionnent.
-                    setValue('counts', update(getValues('counts')), { shouldValidate: true })
-                  }
-                />
-                <FieldError msg={errors.counts?.message} />
-                <p className="mt-2 text-xs text-cream-dim">
-                  Un ordre de grandeur suffit.
-                </p>
-
-                <div className="mt-5">
-                  <EstimatePreview
-                    counts={counts}
-                    shower={shower}
-                    pack={pack}
-                    showerPack={showerPack}
-                    travel={travel}
-                  />
-                </div>
-              </div>
-
-              <div className="min-w-0 sm:col-span-6">
-                {/* Le forfait des vitres ne se pose que s’il y a des vitres :
-                    une demande portant uniquement sur la douche n’a pas à
-                    trancher entre Premium et Excellence pour des ouvrants
-                    qu’elle ne comporte pas. */}
-                {total > 0 && (
-                  <>
+                {/* Toujours visible : c’est ce choix qui commande la suite.
+                    Signature masque les compteurs, il doit donc pouvoir être
+                    sélectionné avant qu’aucun ouvrant ne soit compté. */}
+                <>
                     <span className="label">Forfait pour vos vitres</span>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {packs.map((p) => (
@@ -443,8 +419,7 @@ export default function Booking() {
                       ))}
                     </div>
                     <FieldError msg={errors.pack?.message} />
-                  </>
-                )}
+                </>
 
                 <label
                   className={cn(
@@ -483,9 +458,9 @@ export default function Booking() {
                       <div className="mt-3 rounded-xl border border-gold/25 bg-gold/[0.04] p-4">
                         <span className="label">Forfait pour la douche</span>
                         <div className="grid gap-3 sm:grid-cols-2">
-                          {packs.map((p) => (
+                          {showerPricing.formulas.map((f) => (
                             <label
-                              key={p.id}
+                              key={f.id}
                               className={cn(
                                 'flex cursor-pointer items-start gap-3 rounded-xl border border-ink-line bg-ink-soft p-4 transition',
                                 'hover:border-gold/50 has-[:checked]:border-gold has-[:checked]:bg-gold/[0.06]',
@@ -493,19 +468,16 @@ export default function Booking() {
                             >
                               <input
                                 type="radio"
-                                value={p.id}
+                                value={f.id}
                                 className="mt-1 h-4 w-4 accent-[#C9A24A]"
                                 {...register('showerPack')}
                               />
                               <span>
                                 <span className="block text-sm font-medium text-cream">
-                                  {p.name}
+                                  {f.name} — {f.price} €
                                 </span>
                                 <span className="mt-0.5 block text-xs text-cream-dim">
-                                  {showerPricing[p.id]} €{' '}
-                                  {p.id === 'excellence'
-                                    ? '— traitement nano hydrophobe compris'
-                                    : '— nettoyage complet'}
+                                  {f.detail}
                                 </span>
                               </span>
                             </label>
@@ -513,13 +485,47 @@ export default function Booking() {
                         </div>
                         <FieldError msg={errors.showerPack?.message} />
                         <p className="mt-3 text-xs leading-relaxed text-cream-dim">
-                          Ce choix est indépendant du forfait retenu pour vos vitres.
+                          Réservable seule, sans forfait vitres. Le traitement nano nécessite le
+                          nettoyage préalable de la paroi.
                         </p>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
+              <div className={cn('min-w-0 sm:col-span-6', isQuoteOnly(pack) && 'hidden')}>
+                <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="label !mb-0">Ouvrants à traiter</span>
+                  <span className="text-xs text-cream-dim">
+                    Total :{' '}
+                    <span className={total > 0 ? 'text-gold' : 'text-cream-dim'}>{total}</span>
+                  </span>
+                </div>
+
+                <OpeningCounter
+                  counts={counts}
+                  onChange={(update) =>
+                    // getValues lit l’état courant du formulaire, pas la valeur
+                    // capturée au rendu : les appuis rapides s’additionnent.
+                    setValue('counts', update(getValues('counts')), { shouldValidate: true })
+                  }
+                />
+                <FieldError msg={errors.counts?.message} />
+                <p className="mt-2 text-xs text-cream-dim">
+                  Un ordre de grandeur suffit.
+                </p>
+
+                <div className="mt-5">
+                  <EstimatePreview
+                    counts={counts}
+                    shower={shower}
+                    pack={pack}
+                    showerPack={showerPack}
+                    travel={travel}
+                  />
+                </div>
+              </div>
+
 
               <div className="min-w-0 sm:col-span-6">
                 <label className="label" htmlFor="date">
@@ -585,8 +591,7 @@ export default function Booking() {
                 </a>
                 .
                 <span className="mt-1 block text-xs leading-relaxed text-cream-dim">
-                  Sans frais plus de 24 h avant l’intervention. Moins de 24 h ou rendez-vous non
-                  honoré : 30 % du devis, sauf cas de force majeure justifié.
+                  {cancellationSummary}
                 </span>
               </span>
             </label>

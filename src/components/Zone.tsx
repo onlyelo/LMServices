@@ -1,8 +1,10 @@
-import { Circle, CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from 'react-leaflet'
+import { useState } from 'react'
+import { Circle, CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import { cities, company, serviceBase, travelFee } from '@/data/site'
 import { BASE, haversineKm, zoneForKm } from '@/lib/geo'
 import Section from './Section'
 import Reveal from './Reveal'
+import ZoneChecker, { zoneStyle, type FoundPlace } from './ZoneChecker'
 
 /**
  * La carte porte seule l'information de zone : deux cercles, des marqueurs
@@ -13,7 +15,16 @@ import Reveal from './Reveal'
  * Distances et zones sont calculées ici à partir des coordonnées, avec la même
  * fonction que le badge du formulaire : un seul calcul, aucun risque d'écart.
  */
+/** Recentre la carte sur la commune trouvée, sans casser le zoom manuel. */
+function FlyTo({ place }: { place: FoundPlace | null }) {
+  const map = useMap()
+  if (place) map.flyTo([place.lat, place.lon], Math.max(map.getZoom(), 9), { duration: 0.8 })
+  return null
+}
+
 export default function Zone() {
+  const [found, setFound] = useState<FoundPlace | null>(null)
+
   return (
     <Section
       id="zone"
@@ -118,6 +129,34 @@ export default function Zone() {
                 </CircleMarker>
               )
             })}
+            {found && (
+              <>
+                <FlyTo place={found} />
+                <CircleMarker
+                  center={[found.lat, found.lon]}
+                  radius={9}
+                  pathOptions={{
+                    color: '#F4F1EA',
+                    weight: 2.5,
+                    fillColor:
+                      found.zone === 'free'
+                        ? '#34D399'
+                        : found.zone === 'fee'
+                          ? '#FBBF24'
+                          : '#F87171',
+                    fillOpacity: 1,
+                  }}
+                >
+                  <Popup autoClose={false}>
+                    <strong>{found.name}</strong>
+                    <br />
+                    {zoneStyle(found.zone).label}
+                    <br />
+                    à {Math.round(found.km)} km de {serviceBase.name}
+                  </Popup>
+                </CircleMarker>
+              </>
+            )}
           </MapContainer>
         </div>
 
@@ -140,16 +179,14 @@ export default function Zone() {
           </li>
         </ul>
 
-        <div className="mt-6 flex flex-col gap-4 border-t border-ink-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-cream-dim">
-            Touchez un point de la carte pour connaître sa distance et sa zone. Distances à vol
-            d’oiseau depuis {serviceBase.name}, à titre indicatif — le code postal saisi dans le
-            formulaire indique automatiquement votre zone.
-          </p>
-          <a href={company.phoneHref} className="btn-ghost shrink-0 !px-6 !py-3 text-xs">
-            Vérifier ma commune
-          </a>
+        <div className="mt-6">
+          <ZoneChecker onFound={setFound} />
         </div>
+
+        <p className="mt-4 border-t border-ink-line pt-4 text-xs text-cream-dim">
+          Touchez un point de la carte pour connaître sa distance et sa zone. Distances à vol
+          d’oiseau depuis {serviceBase.name}, données à titre indicatif.
+        </p>
       </Reveal>
     </Section>
   )

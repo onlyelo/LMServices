@@ -63,8 +63,8 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* L’essentiel reprises ici : le visiteur qui descend
-            directement au footer ne doit pas avoir à remonter pour les trouver. */}
+        {/* Repris ici : le visiteur qui descend directement au footer ne doit
+            pas avoir à remonter pour trouver ces informations. */}
         <div className="mt-14 border-t border-ink-line pt-10">
           <h2 className="text-[10px] uppercase tracking-widest2 text-cream-dim">
             L’essentiel
@@ -83,9 +83,9 @@ export default function Footer() {
             <div>
               <dt className="text-xs font-medium text-cream">Annulation</dt>
               <dd className="mt-1.5 text-[11px] leading-relaxed text-cream-dim">
-                Sans frais plus de 24 h avant l’intervention. Moins de 24 h ou rendez-vous non
-                honoré : 30 % du devis, sauf force majeure justifiée. Report gratuit en cas
-                d’intempéries.{' '}
+                Sans frais jusqu’à 48 h avant l’intervention. Moins de 48 h : 30 % du devis. Moins
+                de 24 h ou absence au rendez-vous : 50 %. Au-delà de 150 €, un acompte de 30 %
+                verrouille le créneau.{' '}
                 <a
                   href="#faq"
                   onClick={(e) => {

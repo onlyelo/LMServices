@@ -3,7 +3,7 @@ import {
   openings,
   packs,
   showerOption,
-  showerPricing,
+  showerFormula,
   type OpeningId,
 } from '@/data/site'
 
@@ -42,14 +42,14 @@ export type BookingPayload = {
 }
 
 /**
- * Détail de l’option douche, tarif inclus, selon le forfait retenu **pour la
- * douche** — qui peut différer de celui choisi pour les vitres.
+ * Détail de l’option douche, tarif inclus, selon la formule retenue. Ce choix
+ * est indépendant du forfait appliqué aux vitres, et l’option peut être
+ * réservée seule.
  */
 export function showerDetail(v: { shower: boolean; showerPack?: string }): string {
   if (!v.shower) return 'non'
-  return v.showerPack === 'excellence'
-    ? `oui — Excellence, ${showerPricing.excellence} € avec traitement nano hydrophobe`
-    : `oui — Premium, ${showerPricing.premium} € nettoyage complet`
+  const formula = showerFormula(v.showerPack ?? '')
+  return formula ? `oui — ${formula.name}, ${formula.price} €` : 'oui — formule à préciser'
 }
 
 export function totalOpenings(counts: OpeningCounts): number {

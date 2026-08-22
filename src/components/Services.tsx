@@ -24,7 +24,7 @@ export default function Services() {
       eyebrow="Nos forfaits"
       title={
         <>
-          Deux niveaux d’exigence.
+          Trois niveaux d’exigence.
           <br />
           <span className="text-cream-dim">Aucun compromis sur le résultat.</span>
         </>
@@ -32,14 +32,12 @@ export default function Services() {
       intro="Le tarif dépend du nombre et du type d’ouvrants à traiter."
     >
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-7">
-        <ShowerOption />
-
         {packs.map((p, i) => {
           const isLast = i === packs.length - 1
           return (
             <Reveal
               key={p.id}
-              delay={(i + 1) * 0.05}
+              delay={i * 0.05}
               className={cn(
                 'h-full',
                 isLast &&
@@ -72,12 +70,18 @@ export default function Services() {
                     affiché en valeur principale pour ne pas laisser croire à un
                     forfait minimum. */}
                 <div className="mt-6 border-y border-ink-line py-5">
-                  <div className="flex items-end gap-2">
-                    <span className="font-display text-4xl leading-none text-gold">
-                      {euros(p.perWindow)}
-                    </span>
-                    <span className="pb-0.5 text-sm text-cream-dim">par fenêtre</span>
-                  </div>
+                  {p.quoteOnly ? (
+                    <div className="flex items-end gap-2">
+                      <span className="font-display text-4xl leading-none text-gold">Sur devis</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-end gap-2">
+                      <span className="font-display text-4xl leading-none text-gold">
+                        {euros(p.perWindow ?? 0)}
+                      </span>
+                      <span className="pb-0.5 text-sm text-cream-dim">par fenêtre</span>
+                    </div>
+                  )}
                 </div>
 
                 <p className="mt-5 text-sm leading-relaxed text-cream-dim">{p.pitch}</p>
@@ -110,21 +114,31 @@ export default function Services() {
                 {/* mt-auto plaque le bas de carte : quelles que soient les
                     longueurs de listes, les boutons restent alignés. */}
                 <div className="mt-auto pt-6">
-                  <p className="rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-xs text-cream-dim">
-                    {p.highlight}
-                  </p>
+                  {p.highlight && (
+                    <p className="rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-xs text-cream-dim">
+                      {p.highlight}
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={() => choosePack(p.id)}
-                    className={cn('mt-4 w-full', p.featured ? 'btn-gold' : 'btn-ghost')}
+                    className={cn(
+                      'w-full',
+                      p.highlight && 'mt-4',
+                      p.featured ? 'btn-gold' : 'btn-ghost',
+                    )}
                   >
-                    Choisir {p.name}
+                    {p.quoteOnly ? `Demander un devis ${p.name}` : `Choisir ${p.name}`}
                   </button>
                 </div>
               </motion.article>
             </Reveal>
           )
         })}
+      </div>
+
+      <div className="mt-6">
+        <ShowerOption />
       </div>
     </Section>
   )
